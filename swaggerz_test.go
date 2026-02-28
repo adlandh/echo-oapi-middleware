@@ -32,7 +32,7 @@ func TestSwaggerzBytes_RequestRouting(t *testing.T) {
 			path:          "/swaggerz",
 			wantStatus:    http.StatusOK,
 			wantBody:      string(spec),
-			wantType:      "application/yaml; charset=utf-8",
+			wantType:      "text/yaml; charset=utf-8",
 			assertSwagger: true,
 		},
 		{
@@ -40,7 +40,7 @@ func TestSwaggerzBytes_RequestRouting(t *testing.T) {
 			method:        http.MethodHead,
 			path:          "/swaggerz",
 			wantStatus:    http.StatusOK,
-			wantType:      "application/yaml; charset=utf-8",
+			wantType:      "text/yaml; charset=utf-8",
 			wantLength:    strconv.Itoa(len(spec)),
 			expectNoBody:  true,
 			assertSwagger: true,
@@ -52,7 +52,7 @@ func TestSwaggerzBytes_RequestRouting(t *testing.T) {
 			path:       "/docs/openapi.yaml",
 			wantStatus: http.StatusOK,
 			wantBody:   string(spec),
-			wantType:   "application/yaml; charset=utf-8",
+			wantType:   "text/yaml; charset=utf-8",
 		},
 		{
 			name:       "post swagger path passes through",
@@ -172,7 +172,7 @@ func TestSwaggerzSpec_RequestRouting(t *testing.T) {
 				t.Fatalf("expected status %d, got %d", http.StatusOK, rec.Code)
 			}
 
-			if got := rec.Header().Get(echo.HeaderContentType); got != "application/yaml; charset=utf-8" {
+			if got := rec.Header().Get(echo.HeaderContentType); got != "text/yaml; charset=utf-8" {
 				t.Fatalf("unexpected content type: %q", got)
 			}
 

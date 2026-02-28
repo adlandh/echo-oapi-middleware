@@ -11,6 +11,7 @@ import (
 )
 
 const defaultPath = "/swaggerz"
+const contentTypeYAML = "text/yaml; charset=utf-8"
 
 // SwaggerzConfig configures the swagger YAML endpoint middleware.
 type SwaggerzConfig struct {
@@ -66,7 +67,7 @@ func swaggerzMiddleware(body []byte, cfg SwaggerzConfig) echo.MiddlewareFunc {
 			req := c.Request()
 
 			if req.URL.Path == path && (req.Method == http.MethodGet || req.Method == http.MethodHead) {
-				c.Response().Header().Set(echo.HeaderContentType, "application/yaml; charset=utf-8")
+				c.Response().Header().Set(echo.HeaderContentType, contentTypeYAML)
 
 				if req.Method == http.MethodHead {
 					c.Response().Header().Set(echo.HeaderContentLength, fmt.Sprintf("%d", len(body)))
@@ -74,7 +75,7 @@ func swaggerzMiddleware(body []byte, cfg SwaggerzConfig) echo.MiddlewareFunc {
 					return c.NoContent(http.StatusOK)
 				}
 
-				return c.Blob(http.StatusOK, "application/yaml; charset=utf-8", body)
+				return c.Blob(http.StatusOK, contentTypeYAML, body)
 			}
 
 			return next(c)
