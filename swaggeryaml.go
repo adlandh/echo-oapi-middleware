@@ -10,23 +10,23 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-const defaultPath = "/swaggerz"
+const defaultPath = "/swagger.yaml"
 const contentTypeYAML = "text/yaml; charset=utf-8"
 
-// SwaggerzConfig configures the swagger YAML endpoint middleware.
-type SwaggerzConfig struct {
+// SwaggerYamlConfig configures the swagger YAML endpoint middleware.
+type SwaggerYamlConfig struct {
 	// Path is the endpoint path where swagger YAML is served.
-	// Default: /swaggerz
+	// Default: /swagger.yaml
 	Path string
 }
 
-// SwaggerzBytes creates middleware that serves swagger YAML from raw bytes with default config.
-func SwaggerzBytes(specBytes []byte) (echo.MiddlewareFunc, error) {
-	return SwaggerzBytesWithConfig(specBytes, SwaggerzConfig{})
+// SwaggerYamlBytes creates middleware that serves swagger YAML from raw bytes with default config.
+func SwaggerYamlBytes(specBytes []byte) (echo.MiddlewareFunc, error) {
+	return SwaggerYamlBytesWithConfig(specBytes, SwaggerYamlConfig{})
 }
 
-// SwaggerzBytesWithConfig creates middleware that serves swagger YAML from raw bytes.
-func SwaggerzBytesWithConfig(specBytes []byte, cfg SwaggerzConfig) (echo.MiddlewareFunc, error) {
+// SwaggerYamlBytesWithConfig creates middleware that serves swagger YAML from raw bytes.
+func SwaggerYamlBytesWithConfig(specBytes []byte, cfg SwaggerYamlConfig) (echo.MiddlewareFunc, error) {
 	if len(specBytes) == 0 {
 		return nil, errors.New("spec bytes must not be empty")
 	}
@@ -34,16 +34,16 @@ func SwaggerzBytesWithConfig(specBytes []byte, cfg SwaggerzConfig) (echo.Middlew
 	body := make([]byte, len(specBytes))
 	copy(body, specBytes)
 
-	return swaggerzMiddleware(body, cfg), nil
+	return swaggerYamlMiddleware(body, cfg), nil
 }
 
-// SwaggerzSpec creates middleware that serves swagger YAML from openapi3.T with default config.
-func SwaggerzSpec(spec *openapi3.T) (echo.MiddlewareFunc, error) {
-	return SwaggerzSpecWithConfig(spec, SwaggerzConfig{})
+// SwaggerYamlSpec creates middleware that serves swagger YAML from openapi3.T with default config.
+func SwaggerYamlSpec(spec *openapi3.T) (echo.MiddlewareFunc, error) {
+	return SwaggerYamlSpecWithConfig(spec, SwaggerYamlConfig{})
 }
 
-// SwaggerzSpecWithConfig creates middleware that serves swagger YAML from openapi3.T.
-func SwaggerzSpecWithConfig(spec *openapi3.T, cfg SwaggerzConfig) (echo.MiddlewareFunc, error) {
+// SwaggerYamlSpecWithConfig creates middleware that serves swagger YAML from openapi3.T.
+func SwaggerYamlSpecWithConfig(spec *openapi3.T, cfg SwaggerYamlConfig) (echo.MiddlewareFunc, error) {
 	if spec == nil {
 		return nil, errors.New("spec must not be nil")
 	}
@@ -53,10 +53,10 @@ func SwaggerzSpecWithConfig(spec *openapi3.T, cfg SwaggerzConfig) (echo.Middlewa
 		return nil, fmt.Errorf("marshal openapi spec to yaml: %w", err)
 	}
 
-	return swaggerzMiddleware(body, cfg), nil
+	return swaggerYamlMiddleware(body, cfg), nil
 }
 
-func swaggerzMiddleware(body []byte, cfg SwaggerzConfig) echo.MiddlewareFunc {
+func swaggerYamlMiddleware(body []byte, cfg SwaggerYamlConfig) echo.MiddlewareFunc {
 	path := cfg.Path
 	if path == "" {
 		path = defaultPath

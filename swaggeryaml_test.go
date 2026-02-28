@@ -11,12 +11,12 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-func TestSwaggerzBytes_RequestRouting(t *testing.T) {
+func TestSwaggerYamlBytes_RequestRouting(t *testing.T) {
 	spec := []byte("openapi: 3.0.0\n")
 
 	tests := []struct {
 		name          string
-		cfg           SwaggerzConfig
+		cfg           SwaggerYamlConfig
 		method        string
 		path          string
 		wantStatus    int
@@ -29,7 +29,7 @@ func TestSwaggerzBytes_RequestRouting(t *testing.T) {
 		{
 			name:          "get default path",
 			method:        http.MethodGet,
-			path:          "/swaggerz",
+			path:          "/swagger.yaml",
 			wantStatus:    http.StatusOK,
 			wantBody:      string(spec),
 			wantType:      "text/yaml; charset=utf-8",
@@ -38,7 +38,7 @@ func TestSwaggerzBytes_RequestRouting(t *testing.T) {
 		{
 			name:          "head default path",
 			method:        http.MethodHead,
-			path:          "/swaggerz",
+			path:          "/swagger.yaml",
 			wantStatus:    http.StatusOK,
 			wantType:      "text/yaml; charset=utf-8",
 			wantLength:    strconv.Itoa(len(spec)),
@@ -47,7 +47,7 @@ func TestSwaggerzBytes_RequestRouting(t *testing.T) {
 		},
 		{
 			name:       "get custom path",
-			cfg:        SwaggerzConfig{Path: "/docs/openapi.yaml"},
+			cfg:        SwaggerYamlConfig{Path: "/docs/openapi.yaml"},
 			method:     http.MethodGet,
 			path:       "/docs/openapi.yaml",
 			wantStatus: http.StatusOK,
@@ -57,7 +57,7 @@ func TestSwaggerzBytes_RequestRouting(t *testing.T) {
 		{
 			name:       "post swagger path passes through",
 			method:     http.MethodPost,
-			path:       "/swaggerz",
+			path:       "/swagger.yaml",
 			wantStatus: http.StatusAccepted,
 			wantBody:   "posted",
 		},
@@ -73,7 +73,7 @@ func TestSwaggerzBytes_RequestRouting(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			e := echo.New()
-			mw, err := SwaggerzBytesWithConfig(spec, tt.cfg)
+			mw, err := SwaggerYamlBytesWithConfig(spec, tt.cfg)
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
@@ -82,7 +82,7 @@ func TestSwaggerzBytes_RequestRouting(t *testing.T) {
 			e.GET("/users", func(c echo.Context) error {
 				return c.String(http.StatusOK, "users")
 			})
-			e.POST("/swaggerz", func(c echo.Context) error {
+			e.POST("/swagger.yaml", func(c echo.Context) error {
 				return c.String(http.StatusAccepted, "posted")
 			})
 
@@ -120,21 +120,21 @@ func TestSwaggerzBytes_RequestRouting(t *testing.T) {
 	}
 }
 
-func TestSwaggerzSpec_RequestRouting(t *testing.T) {
+func TestSwaggerYamlSpec_RequestRouting(t *testing.T) {
 	tests := []struct {
 		name      string
-		cfg       SwaggerzConfig
+		cfg       SwaggerYamlConfig
 		path      string
 		wantParts []string
 	}{
 		{
 			name:      "default path",
-			path:      "/swaggerz",
+			path:      "/swagger.yaml",
 			wantParts: []string{"openapi: 3.1.0", "title: Default", "version: 1.0.0"},
 		},
 		{
 			name:      "custom path",
-			cfg:       SwaggerzConfig{Path: "/docs/openapi.yaml"},
+			cfg:       SwaggerYamlConfig{Path: "/docs/openapi.yaml"},
 			path:      "/docs/openapi.yaml",
 			wantParts: []string{"openapi: 3.0.3", "title: API", "version: 1.0.0"},
 		},
@@ -154,7 +154,7 @@ func TestSwaggerzSpec_RequestRouting(t *testing.T) {
 			}
 
 			e := echo.New()
-			mw, err := SwaggerzSpecWithConfig(spec, tt.cfg)
+			mw, err := SwaggerYamlSpecWithConfig(spec, tt.cfg)
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
@@ -183,10 +183,10 @@ func TestSwaggerzSpec_RequestRouting(t *testing.T) {
 	}
 }
 
-func TestSwaggerz_BytesInputIsCopied(t *testing.T) {
+func TestSwaggerYaml_BytesInputIsCopied(t *testing.T) {
 	e := echo.New()
 	spec := []byte("openapi: 3.0.0\n")
-	mw, err := SwaggerzBytes(spec)
+	mw, err := SwaggerYamlBytes(spec)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -197,7 +197,7 @@ func TestSwaggerz_BytesInputIsCopied(t *testing.T) {
 		return c.String(http.StatusOK, "users")
 	})
 
-	req := httptest.NewRequest(http.MethodGet, "/swaggerz", nil)
+	req := httptest.NewRequest(http.MethodGet, "/swagger.yaml", nil)
 	rec := httptest.NewRecorder()
 	e.ServeHTTP(rec, req)
 
@@ -206,7 +206,7 @@ func TestSwaggerz_BytesInputIsCopied(t *testing.T) {
 	}
 }
 
-func TestSwaggerz_ConstructorsValidation(t *testing.T) {
+func TestSwaggerYaml_ConstructorsValidation(t *testing.T) {
 	tests := []struct {
 		name string
 		run  func() error
@@ -214,28 +214,28 @@ func TestSwaggerz_ConstructorsValidation(t *testing.T) {
 		{
 			name: "bytes empty",
 			run: func() error {
-				_, err := SwaggerzBytes(nil)
+				_, err := SwaggerYamlBytes(nil)
 				return err
 			},
 		},
 		{
 			name: "bytes with config empty",
 			run: func() error {
-				_, err := SwaggerzBytesWithConfig([]byte{}, SwaggerzConfig{Path: "/docs/openapi.yaml"})
+				_, err := SwaggerYamlBytesWithConfig([]byte{}, SwaggerYamlConfig{Path: "/docs/openapi.yaml"})
 				return err
 			},
 		},
 		{
 			name: "spec nil",
 			run: func() error {
-				_, err := SwaggerzSpec(nil)
+				_, err := SwaggerYamlSpec(nil)
 				return err
 			},
 		},
 		{
 			name: "spec with config nil",
 			run: func() error {
-				_, err := SwaggerzSpecWithConfig(nil, SwaggerzConfig{Path: "/docs/openapi.yaml"})
+				_, err := SwaggerYamlSpecWithConfig(nil, SwaggerYamlConfig{Path: "/docs/openapi.yaml"})
 				return err
 			},
 		},

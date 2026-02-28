@@ -9,10 +9,10 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-func BenchmarkSwaggerzGET(b *testing.B) {
+func BenchmarkSwaggerYamlGET(b *testing.B) {
 	b.Run("bytes", func(b *testing.B) {
 		e := echo.New()
-		mw, err := SwaggerzBytes([]byte("openapi: 3.0.0\ninfo:\n  title: API\n  version: 1.0.0\n"))
+		mw, err := SwaggerYamlBytes([]byte("openapi: 3.0.0\ninfo:\n  title: API\n  version: 1.0.0\n"))
 		if err != nil {
 			b.Fatalf("unexpected error: %v", err)
 		}
@@ -22,7 +22,7 @@ func BenchmarkSwaggerzGET(b *testing.B) {
 			return c.String(http.StatusOK, "users")
 		})
 
-		req := httptest.NewRequest(http.MethodGet, "/swaggerz", nil)
+		req := httptest.NewRequest(http.MethodGet, "/swagger.yaml", nil)
 
 		b.ReportAllocs()
 		b.ResetTimer()
@@ -38,7 +38,7 @@ func BenchmarkSwaggerzGET(b *testing.B) {
 
 	b.Run("spec", func(b *testing.B) {
 		e := echo.New()
-		mw, err := SwaggerzSpec(&openapi3.T{
+		mw, err := SwaggerYamlSpec(&openapi3.T{
 			OpenAPI: "3.0.3",
 			Info: &openapi3.Info{
 				Title:   "API",
@@ -55,7 +55,7 @@ func BenchmarkSwaggerzGET(b *testing.B) {
 			return c.String(http.StatusOK, "users")
 		})
 
-		req := httptest.NewRequest(http.MethodGet, "/swaggerz", nil)
+		req := httptest.NewRequest(http.MethodGet, "/swagger.yaml", nil)
 
 		b.ReportAllocs()
 		b.ResetTimer()
