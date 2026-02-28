@@ -12,10 +12,7 @@ import (
 func BenchmarkSwaggerYamlGET(b *testing.B) {
 	b.Run("bytes", func(b *testing.B) {
 		e := echo.New()
-		mw, err := SwaggerYamlBytes([]byte("openapi: 3.0.0\ninfo:\n  title: API\n  version: 1.0.0\n"))
-		if err != nil {
-			b.Fatalf("unexpected error: %v", err)
-		}
+		mw := SwaggerYamlBytes([]byte("openapi: 3.0.0\ninfo:\n  title: API\n  version: 1.0.0\n"))
 
 		e.Use(mw)
 		e.GET("/users", func(c echo.Context) error {
@@ -38,7 +35,7 @@ func BenchmarkSwaggerYamlGET(b *testing.B) {
 
 	b.Run("spec", func(b *testing.B) {
 		e := echo.New()
-		mw, err := SwaggerYamlSpec(&openapi3.T{
+		mw := SwaggerYamlSpec(&openapi3.T{
 			OpenAPI: "3.0.3",
 			Info: &openapi3.Info{
 				Title:   "API",
@@ -46,9 +43,6 @@ func BenchmarkSwaggerYamlGET(b *testing.B) {
 			},
 			Paths: &openapi3.Paths{},
 		})
-		if err != nil {
-			b.Fatalf("unexpected error: %v", err)
-		}
 
 		e.Use(mw)
 		e.GET("/users", func(c echo.Context) error {

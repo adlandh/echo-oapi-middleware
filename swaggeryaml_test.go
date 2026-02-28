@@ -73,12 +73,8 @@ func TestSwaggerYamlBytes_RequestRouting(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			e := echo.New()
-			mw, err := SwaggerYamlBytesWithConfig(spec, tt.cfg)
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
 
-			e.Use(mw)
+			e.Use(SwaggerYamlBytesWithConfig(spec, tt.cfg))
 			e.GET("/users", func(c echo.Context) error {
 				return c.String(http.StatusOK, "users")
 			})
@@ -154,12 +150,7 @@ func TestSwaggerYamlSpec_RequestRouting(t *testing.T) {
 			}
 
 			e := echo.New()
-			mw, err := SwaggerYamlSpecWithConfig(spec, tt.cfg)
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-
-			e.Use(mw)
+			e.Use(SwaggerYamlSpecWithConfig(spec, tt.cfg))
 			e.GET("/users", func(c echo.Context) error {
 				return c.String(http.StatusOK, "ok")
 			})
@@ -183,13 +174,66 @@ func TestSwaggerYamlSpec_RequestRouting(t *testing.T) {
 	}
 }
 
+func TestSwaggerYamlSpec_KeepServers(t *testing.T) {
+	tests := []struct {
+		name         string
+		cfg          SwaggerYamlConfig
+		wantContains bool
+	}{
+		{
+			name:         "default strips servers",
+			cfg:          SwaggerYamlConfig{},
+			wantContains: false,
+		},
+		{
+			name: "keep servers enabled",
+			cfg: SwaggerYamlConfig{
+				KeepServers: true,
+			},
+			wantContains: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			e := echo.New()
+			spec := &openapi3.T{
+				OpenAPI: "3.0.3",
+				Info: &openapi3.Info{
+					Title:   "API",
+					Version: "1.0.0",
+				},
+				Servers: openapi3.Servers{{
+					URL: "https://api.example.com",
+				}},
+			}
+
+			e.Use(SwaggerYamlSpecWithConfig(spec, tt.cfg))
+			e.GET("/users", func(c echo.Context) error {
+				return c.String(http.StatusOK, "ok")
+			})
+
+			req := httptest.NewRequest(http.MethodGet, "/swagger.yaml", nil)
+			rec := httptest.NewRecorder()
+			e.ServeHTTP(rec, req)
+
+			if rec.Code != http.StatusOK {
+				t.Fatalf("expected status %d, got %d", http.StatusOK, rec.Code)
+			}
+
+			got := rec.Body.String()
+			hasServers := strings.Contains(got, "servers:") && strings.Contains(got, "https://api.example.com")
+			if hasServers != tt.wantContains {
+				t.Fatalf("servers presence mismatch, want=%v body=%q", tt.wantContains, got)
+			}
+		})
+	}
+}
+
 func TestSwaggerYaml_BytesInputIsCopied(t *testing.T) {
 	e := echo.New()
 	spec := []byte("openapi: 3.0.0\n")
-	mw, err := SwaggerYamlBytes(spec)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	mw := SwaggerYamlBytes(spec)
 	spec[0] = 'X'
 
 	e.Use(mw)
@@ -206,45 +250,52 @@ func TestSwaggerYaml_BytesInputIsCopied(t *testing.T) {
 	}
 }
 
-func TestSwaggerYaml_ConstructorsValidation(t *testing.T) {
+func TestSwaggerYaml_ConstructorsAcceptEmptyInputs(t *testing.T) {
 	tests := []struct {
 		name string
-		run  func() error
+		mw   echo.MiddlewareFunc
 	}{
 		{
-			name: "bytes empty",
-			run: func() error {
-				_, err := SwaggerYamlBytes(nil)
-				return err
-			},
-		},
-		{
-			name: "bytes with config empty",
-			run: func() error {
-				_, err := SwaggerYamlBytesWithConfig([]byte{}, SwaggerYamlConfig{Path: "/docs/openapi.yaml"})
-				return err
-			},
+			name: "bytes nil",
+			mw:   SwaggerYamlBytes(nil),
 		},
 		{
 			name: "spec nil",
-			run: func() error {
-				_, err := SwaggerYamlSpec(nil)
-				return err
-			},
-		},
-		{
-			name: "spec with config nil",
-			run: func() error {
-				_, err := SwaggerYamlSpecWithConfig(nil, SwaggerYamlConfig{Path: "/docs/openapi.yaml"})
-				return err
-			},
+			mw:   SwaggerYamlSpec(nil),
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := tt.run(); err == nil {
-				t.Fatal("expected validation error")
+			e := echo.New()
+			e.Use(tt.mw)
+
+			req := httptest.NewRequest(http.MethodGet, "/swagger.yaml", nil)
+			rec := httptest.NewRecorder()
+			e.ServeHTTP(rec, req)
+
+			if rec.Code != http.StatusOK {
+				t.Fatalf("expected status %d, got %d", http.StatusOK, rec.Code)
+			}
+
+			if got := rec.Header().Get(echo.HeaderContentType); got != contentTypeYAML {
+				t.Fatalf("unexpected content type: %q", got)
+			}
+
+			if rec.Body.String() != "" {
+				t.Fatalf("expected empty body, got %q", rec.Body.String())
+			}
+
+			reqHead := httptest.NewRequest(http.MethodHead, "/swagger.yaml", nil)
+			recHead := httptest.NewRecorder()
+			e.ServeHTTP(recHead, reqHead)
+
+			if recHead.Code != http.StatusOK {
+				t.Fatalf("expected status %d, got %d", http.StatusOK, recHead.Code)
+			}
+
+			if got := recHead.Header().Get(echo.HeaderContentLength); got != "0" {
+				t.Fatalf("unexpected content-length: %q", got)
 			}
 		})
 	}

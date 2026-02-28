@@ -15,10 +15,7 @@ func TestSwaggerUIBytes_DefaultPaths(t *testing.T) {
 	e := echo.New()
 	spec := []byte("openapi: 3.0.0\n")
 
-	mw, err := SwaggerUIBytes(spec)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	mw := SwaggerUIBytes(spec)
 
 	e.Use(mw)
 	e.GET("/users", func(c echo.Context) error {
@@ -64,13 +61,10 @@ func TestSwaggerUIBytes_DefaultPaths(t *testing.T) {
 
 func TestSwaggerUIBytes_CustomPaths(t *testing.T) {
 	e := echo.New()
-	mw, err := SwaggerUIBytesWithConfig([]byte("openapi: 3.0.0\n"), SwaggerUIConfig{
+	mw := SwaggerUIBytesWithConfig([]byte("openapi: 3.0.0\n"), SwaggerUIConfig{
 		Path:     "/docs",
 		SpecPath: "/docs/openapi.yaml",
 	})
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
 
 	e.Use(mw)
 	e.GET("/users", func(c echo.Context) error {
@@ -94,13 +88,10 @@ func TestSwaggerUIBytes_CustomPaths(t *testing.T) {
 
 func TestSwaggerUISpec_DefaultPaths(t *testing.T) {
 	e := echo.New()
-	mw, err := SwaggerUISpec(&openapi3.T{
+	mw := SwaggerUISpec(&openapi3.T{
 		OpenAPI: "3.0.3",
 		Info:    &openapi3.Info{Title: "API", Version: "1.0.0"},
 	})
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
 
 	e.Use(mw)
 	e.GET("/users", func(c echo.Context) error {
@@ -123,10 +114,7 @@ func TestSwaggerUISpec_DefaultPaths(t *testing.T) {
 
 func TestSwaggerUI_HeadAndPassthrough(t *testing.T) {
 	e := echo.New()
-	mw, err := SwaggerUIBytes([]byte("openapi: 3.0.0\n"))
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	mw := SwaggerUIBytes([]byte("openapi: 3.0.0\n"))
 
 	e.Use(mw)
 	e.POST("/swagger", func(c echo.Context) error {
@@ -166,31 +154,52 @@ func TestSwaggerUI_HeadAndPassthrough(t *testing.T) {
 	}
 }
 
-func TestSwaggerUI_Validation(t *testing.T) {
+func TestSwaggerUI_ConstructorsAcceptEmptyInputs(t *testing.T) {
 	tests := []struct {
 		name string
-		run  func() error
+		mw   echo.MiddlewareFunc
 	}{
 		{
 			name: "bytes empty",
-			run: func() error {
-				_, err := SwaggerUIBytes(nil)
-				return err
-			},
+			mw:   SwaggerUIBytes(nil),
 		},
 		{
 			name: "spec nil",
-			run: func() error {
-				_, err := SwaggerUISpec(nil)
-				return err
-			},
+			mw:   SwaggerUISpec(nil),
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := tt.run(); err == nil {
-				t.Fatal("expected validation error")
+			e := echo.New()
+			e.Use(tt.mw)
+
+			reqUI := httptest.NewRequest(http.MethodGet, "/swagger", nil)
+			recUI := httptest.NewRecorder()
+			e.ServeHTTP(recUI, reqUI)
+
+			if recUI.Code != http.StatusOK {
+				t.Fatalf("expected status %d, got %d", http.StatusOK, recUI.Code)
+			}
+
+			if !strings.Contains(recUI.Body.String(), `url: "/swagger.yaml"`) {
+				t.Fatalf("unexpected html body: %q", recUI.Body.String())
+			}
+
+			reqYAML := httptest.NewRequest(http.MethodGet, "/swagger.yaml", nil)
+			recYAML := httptest.NewRecorder()
+			e.ServeHTTP(recYAML, reqYAML)
+
+			if recYAML.Code != http.StatusOK {
+				t.Fatalf("expected status %d, got %d", http.StatusOK, recYAML.Code)
+			}
+
+			if got := recYAML.Header().Get(echo.HeaderContentType); got != contentTypeYAML {
+				t.Fatalf("unexpected yaml content type: %q", got)
+			}
+
+			if recYAML.Body.String() != "" {
+				t.Fatalf("expected empty yaml body, got %q", recYAML.Body.String())
 			}
 		})
 	}

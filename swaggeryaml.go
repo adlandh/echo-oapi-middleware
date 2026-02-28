@@ -1,8 +1,8 @@
 package echooapimiddleware
 
 import (
-	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 
 	"github.com/getkin/kin-openapi/openapi3"
@@ -18,42 +18,51 @@ type SwaggerYamlConfig struct {
 	// Path is the endpoint path where swagger YAML is served.
 	// Default: /swagger.yaml
 	Path string
+	// KeepServers indicates whether to keep the servers field from the spec.
+	// Default: false
+	KeepServers bool
 }
 
 // SwaggerYamlBytes creates middleware that serves swagger YAML from raw bytes with default config.
-func SwaggerYamlBytes(specBytes []byte) (echo.MiddlewareFunc, error) {
+func SwaggerYamlBytes(specBytes []byte) echo.MiddlewareFunc {
 	return SwaggerYamlBytesWithConfig(specBytes, SwaggerYamlConfig{})
 }
 
 // SwaggerYamlBytesWithConfig creates middleware that serves swagger YAML from raw bytes.
-func SwaggerYamlBytesWithConfig(specBytes []byte, cfg SwaggerYamlConfig) (echo.MiddlewareFunc, error) {
-	if len(specBytes) == 0 {
-		return nil, errors.New("spec bytes must not be empty")
+func SwaggerYamlBytesWithConfig(specBytes []byte, cfg SwaggerYamlConfig) echo.MiddlewareFunc {
+	var body []byte
+
+	if len(specBytes) != 0 {
+		body = make([]byte, len(specBytes))
+		copy(body, specBytes)
 	}
 
-	body := make([]byte, len(specBytes))
-	copy(body, specBytes)
-
-	return swaggerYamlMiddleware(body, cfg), nil
+	return swaggerYamlMiddleware(body, cfg)
 }
 
 // SwaggerYamlSpec creates middleware that serves swagger YAML from openapi3.T with default config.
-func SwaggerYamlSpec(spec *openapi3.T) (echo.MiddlewareFunc, error) {
+func SwaggerYamlSpec(spec *openapi3.T) echo.MiddlewareFunc {
 	return SwaggerYamlSpecWithConfig(spec, SwaggerYamlConfig{})
 }
 
 // SwaggerYamlSpecWithConfig creates middleware that serves swagger YAML from openapi3.T.
-func SwaggerYamlSpecWithConfig(spec *openapi3.T, cfg SwaggerYamlConfig) (echo.MiddlewareFunc, error) {
-	if spec == nil {
-		return nil, errors.New("spec must not be nil")
+func SwaggerYamlSpecWithConfig(spec *openapi3.T, cfg SwaggerYamlConfig) echo.MiddlewareFunc {
+	var body []byte
+
+	var err error
+
+	if spec != nil {
+		if !cfg.KeepServers {
+			spec.Servers = nil
+		}
+
+		body, err = yaml.Marshal(spec)
+		if err != nil {
+			slog.Warn("failed to marshal openapi spec to yaml", "error", err)
+		}
 	}
 
-	body, err := yaml.Marshal(spec)
-	if err != nil {
-		return nil, fmt.Errorf("marshal openapi spec to yaml: %w", err)
-	}
-
-	return swaggerYamlMiddleware(body, cfg), nil
+	return swaggerYamlMiddleware(body, cfg)
 }
 
 func swaggerYamlMiddleware(body []byte, cfg SwaggerYamlConfig) echo.MiddlewareFunc {

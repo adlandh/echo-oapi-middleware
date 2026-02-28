@@ -24,43 +24,37 @@ type SwaggerUIConfig struct {
 }
 
 // SwaggerUIBytes creates middleware that serves swagger UI and YAML from raw bytes.
-func SwaggerUIBytes(specBytes []byte) (echo.MiddlewareFunc, error) {
+func SwaggerUIBytes(specBytes []byte) echo.MiddlewareFunc {
 	return SwaggerUIBytesWithConfig(specBytes, SwaggerUIConfig{})
 }
 
 // SwaggerUIBytesWithConfig creates middleware that serves swagger UI and YAML from raw bytes.
-func SwaggerUIBytesWithConfig(specBytes []byte, cfg SwaggerUIConfig) (echo.MiddlewareFunc, error) {
+func SwaggerUIBytesWithConfig(specBytes []byte, cfg SwaggerUIConfig) echo.MiddlewareFunc {
 	specPath := cfg.SpecPath
 	if specPath == "" {
 		specPath = defaultPath
 	}
 
-	specMW, err := SwaggerYamlBytesWithConfig(specBytes, SwaggerYamlConfig{Path: specPath})
-	if err != nil {
-		return nil, err
-	}
+	specMW := SwaggerYamlBytesWithConfig(specBytes, SwaggerYamlConfig{Path: specPath})
 
-	return swaggerUIMiddleware(specMW, cfg.Path, specPath), nil
+	return swaggerUIMiddleware(specMW, cfg.Path, specPath)
 }
 
 // SwaggerUISpec creates middleware that serves swagger UI and YAML from openapi3.T.
-func SwaggerUISpec(spec *openapi3.T) (echo.MiddlewareFunc, error) {
+func SwaggerUISpec(spec *openapi3.T) echo.MiddlewareFunc {
 	return SwaggerUISpecWithConfig(spec, SwaggerUIConfig{})
 }
 
 // SwaggerUISpecWithConfig creates middleware that serves swagger UI and YAML from openapi3.T.
-func SwaggerUISpecWithConfig(spec *openapi3.T, cfg SwaggerUIConfig) (echo.MiddlewareFunc, error) {
+func SwaggerUISpecWithConfig(spec *openapi3.T, cfg SwaggerUIConfig) echo.MiddlewareFunc {
 	specPath := cfg.SpecPath
 	if specPath == "" {
 		specPath = defaultPath
 	}
 
-	specMW, err := SwaggerYamlSpecWithConfig(spec, SwaggerYamlConfig{Path: specPath})
-	if err != nil {
-		return nil, err
-	}
+	specMW := SwaggerYamlSpecWithConfig(spec, SwaggerYamlConfig{Path: specPath})
 
-	return swaggerUIMiddleware(specMW, cfg.Path, specPath), nil
+	return swaggerUIMiddleware(specMW, cfg.Path, specPath)
 }
 
 func swaggerUIMiddleware(specMW echo.MiddlewareFunc, uiPath, specPath string) echo.MiddlewareFunc {
