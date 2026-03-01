@@ -23,44 +23,21 @@ type SwaggerUIConfig struct {
 	SpecPath string
 }
 
-// SwaggerUIBytes creates middleware that serves swagger UI and YAML from raw bytes.
-func SwaggerUIBytes(specBytes []byte) (echo.MiddlewareFunc, error) {
-	return SwaggerUIBytesWithConfig(specBytes, SwaggerUIConfig{})
+// SwaggerUI creates middleware that serves swagger UI and YAML from openapi3.T.
+func SwaggerUI(spec *openapi3.T) echo.MiddlewareFunc {
+	return SwaggerUIWithConfig(spec, SwaggerUIConfig{})
 }
 
-// SwaggerUIBytesWithConfig creates middleware that serves swagger UI and YAML from raw bytes.
-func SwaggerUIBytesWithConfig(specBytes []byte, cfg SwaggerUIConfig) (echo.MiddlewareFunc, error) {
+// SwaggerUIWithConfig creates middleware that serves swagger UI and YAML from openapi3.T.
+func SwaggerUIWithConfig(spec *openapi3.T, cfg SwaggerUIConfig) echo.MiddlewareFunc {
 	specPath := cfg.SpecPath
 	if specPath == "" {
 		specPath = defaultPath
 	}
 
-	specMW, err := SwaggerYamlBytesWithConfig(specBytes, SwaggerYamlConfig{Path: specPath})
-	if err != nil {
-		return nil, err
-	}
+	specMW := SwaggerYamlWithConfig(spec, SwaggerYamlConfig{Path: specPath})
 
-	return swaggerUIMiddleware(specMW, cfg.Path, specPath), nil
-}
-
-// SwaggerUISpec creates middleware that serves swagger UI and YAML from openapi3.T.
-func SwaggerUISpec(spec *openapi3.T) (echo.MiddlewareFunc, error) {
-	return SwaggerUISpecWithConfig(spec, SwaggerUIConfig{})
-}
-
-// SwaggerUISpecWithConfig creates middleware that serves swagger UI and YAML from openapi3.T.
-func SwaggerUISpecWithConfig(spec *openapi3.T, cfg SwaggerUIConfig) (echo.MiddlewareFunc, error) {
-	specPath := cfg.SpecPath
-	if specPath == "" {
-		specPath = defaultPath
-	}
-
-	specMW, err := SwaggerYamlSpecWithConfig(spec, SwaggerYamlConfig{Path: specPath})
-	if err != nil {
-		return nil, err
-	}
-
-	return swaggerUIMiddleware(specMW, cfg.Path, specPath), nil
+	return swaggerUIMiddleware(specMW, cfg.Path, specPath)
 }
 
 func swaggerUIMiddleware(specMW echo.MiddlewareFunc, uiPath, specPath string) echo.MiddlewareFunc {
