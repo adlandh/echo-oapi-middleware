@@ -1,5 +1,6 @@
 # Echo OpenAPI Middleware
 
+[![Go Reference](https://pkg.go.dev/badge/github.com/adlandh/echo-oapi-middleware.svg)](https://pkg.go.dev/github.com/adlandh/echo-oapi-middleware)
 [![Go Report Card](https://goreportcard.com/badge/github.com/adlandh/echo-oapi-middleware)](https://goreportcard.com/report/github.com/adlandh/echo-oapi-middleware)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -49,7 +50,7 @@ func main() {
 	}
 
 	// Add middleware to serve the spec at /swagger.yaml
-	e.Use(echooapimiddleware.SwaggerYamlSpec(spec))
+	e.Use(echooapimiddleware.SwaggerYaml(spec))
 
 	// Your routes
 	e.GET("/api/users", listUsers)
@@ -89,7 +90,7 @@ func main() {
 	// Add middleware to serve both UI and spec
 	// UI available at /swagger
 	// Spec available at /swagger.yaml
-	e.Use(echooapimiddleware.SwaggerUISpec(spec))
+	e.Use(echooapimiddleware.SwaggerUI(spec))
 
 	e.GET("/api/users", listUsers)
 
@@ -103,26 +104,26 @@ func listUsers(c echo.Context) error {
 
 ## API Reference
 
-### SwaggerYamlSpec
+### SwaggerYaml
 
 Serves an OpenAPI spec as YAML at a configurable path.
 
 ```go
-func SwaggerYamlSpec(spec *openapi3.T) echo.MiddlewareFunc
+func SwaggerYaml(spec *openapi3.T) echo.MiddlewareFunc
 ```
 
 **Example:**
 ```go
-e.Use(echooapimiddleware.SwaggerYamlSpec(spec))
+e.Use(echooapimiddleware.SwaggerYaml(spec))
 // Serves at GET /swagger.yaml
 ```
 
-### SwaggerYamlSpecWithConfig
+### SwaggerYamlWithConfig
 
 Serves an OpenAPI spec with custom configuration.
 
 ```go
-func SwaggerYamlSpecWithConfig(spec *openapi3.T, cfg SwaggerYamlConfig) echo.MiddlewareFunc
+func SwaggerYamlWithConfig(spec *openapi3.T, cfg SwaggerYamlConfig) echo.MiddlewareFunc
 ```
 
 **Config Options:**
@@ -144,31 +145,31 @@ cfg := echooapimiddleware.SwaggerYamlConfig{
 	Path:        "/docs/openapi.yaml",
 	KeepServers: true,
 }
-e.Use(echooapimiddleware.SwaggerYamlSpecWithConfig(spec, cfg))
+e.Use(echooapimiddleware.SwaggerYamlWithConfig(spec, cfg))
 // Serves at GET /docs/openapi.yaml with servers field preserved
 ```
 
-### SwaggerUISpec
+### SwaggerUI
 
 Serves both Swagger UI and the OpenAPI spec with default paths.
 
 ```go
-func SwaggerUISpec(spec *openapi3.T) echo.MiddlewareFunc
+func SwaggerUI(spec *openapi3.T) echo.MiddlewareFunc
 ```
 
 **Example:**
 ```go
-e.Use(echooapimiddleware.SwaggerUISpec(spec))
+e.Use(echooapimiddleware.SwaggerUI(spec))
 // UI available at: GET /swagger, /swagger/, /swagger/index.html
 // Spec available at: GET /swagger.yaml
 ```
 
-### SwaggerUISpecWithConfig
+### SwaggerUIWithConfig
 
 Serves Swagger UI with custom configuration.
 
 ```go
-func SwaggerUISpecWithConfig(spec *openapi3.T, cfg SwaggerUIConfig) echo.MiddlewareFunc
+func SwaggerUIWithConfig(spec *openapi3.T, cfg SwaggerUIConfig) echo.MiddlewareFunc
 ```
 
 **Config Options:**
@@ -181,6 +182,10 @@ type SwaggerUIConfig struct {
 	// SpecPath is the endpoint path where swagger YAML is served.
 	// Default: /swagger.yaml
 	SpecPath string
+
+	// KeepServers indicates whether to keep the servers field from the spec.
+	// Default: false (servers field is stripped)
+	KeepServers bool
 }
 ```
 
@@ -190,7 +195,7 @@ cfg := echooapimiddleware.SwaggerUIConfig{
 	Path:     "/docs",
 	SpecPath: "/docs/openapi.yaml",
 }
-e.Use(echooapimiddleware.SwaggerUISpecWithConfig(spec, cfg))
+e.Use(echooapimiddleware.SwaggerUIWithConfig(spec, cfg))
 // UI available at: GET /docs, /docs/, /docs/index.html
 // Spec available at: GET /docs/openapi.yaml
 ```
@@ -222,13 +227,13 @@ func main() {
 	}
 
 	// Serve v1 at /api/v1/docs
-	e.Use(echooapimiddleware.SwaggerUISpecWithConfig(v1Spec, echooapimiddleware.SwaggerUIConfig{
+	e.Use(echooapimiddleware.SwaggerUIWithConfig(v1Spec, echooapimiddleware.SwaggerUIConfig{
 		Path:     "/api/v1/docs",
 		SpecPath: "/api/v1/openapi.yaml",
 	}))
 
 	// Serve v2 at /api/v2/docs
-	e.Use(echooapimiddleware.SwaggerUISpecWithConfig(v2Spec, echooapimiddleware.SwaggerUIConfig{
+	e.Use(echooapimiddleware.SwaggerUIWithConfig(v2Spec, echooapimiddleware.SwaggerUIConfig{
 		Path:     "/api/v2/docs",
 		SpecPath: "/api/v2/openapi.yaml",
 	}))
@@ -245,7 +250,7 @@ By default, the `servers` field is stripped from the OpenAPI spec for security r
 cfg := echooapimiddleware.SwaggerYamlConfig{
 	KeepServers: true,
 }
-e.Use(echooapimiddleware.SwaggerYamlSpecWithConfig(spec, cfg))
+e.Use(echooapimiddleware.SwaggerYamlWithConfig(spec, cfg))
 ```
 
 ### Handling Nil/Empty Specs
@@ -254,7 +259,7 @@ The middleware gracefully handles nil or empty specs without errors:
 
 ```go
 // This is safe - returns 200 OK with empty body
-e.Use(echooapimiddleware.SwaggerYamlSpec(nil))
+e.Use(echooapimiddleware.SwaggerYaml(nil))
 ```
 
 ## Important Notes
@@ -271,7 +276,7 @@ spec := &openapi3.T{
 }
 
 // Middleware strips servers from response, but original spec is unchanged
-e.Use(echooapimiddleware.SwaggerYamlSpecWithConfig(spec, echooapimiddleware.SwaggerYamlConfig{
+e.Use(echooapimiddleware.SwaggerYamlWithConfig(spec, echooapimiddleware.SwaggerYamlConfig{
 	KeepServers: false,
 }))
 
@@ -299,8 +304,27 @@ if err != nil {
 	// Handle error
 }
 
-e.Use(echooapimiddleware.SwaggerYamlSpec(&spec))
+e.Use(echooapimiddleware.SwaggerYaml(&spec))
 ```
+
+### Using oapi-codegen Generated Specs
+
+You can use OpenAPI specs generated by [oapi-codegen](https://github.com/oapi-codegen/oapi-codegen) directly with this middleware.
+
+If your generated package exposes `GetSwagger()`, pass the returned `*openapi3.T` into middleware:
+
+```go
+import api "your/module/internal/api"
+
+spec, err := api.GetSwagger()
+if err != nil {
+	// Handle error
+}
+
+e.Use(echooapimiddleware.SwaggerUI(spec))
+```
+
+This is useful when your OpenAPI document is embedded in generated code and you want to serve docs without separately loading YAML files.
 
 ### Request Methods
 
@@ -334,7 +358,7 @@ golangci-lint run
 
 ## Requirements
 
-- Go 1.20+
+- Go 1.25+
 - [github.com/labstack/echo/v4](https://github.com/labstack/echo) - v4.0+
 - [github.com/getkin/kin-openapi](https://github.com/getkin/kin-openapi) - v0.100+
 
