@@ -301,6 +301,82 @@ func TestSwaggerYaml_ConstructorsAcceptEmptyInputs(t *testing.T) {
 	}
 }
 
+func TestSwaggerYamlSpec_NotMutatedByMiddleware(t *testing.T) {
+	spec := &openapi3.T{
+		OpenAPI: "3.0.3",
+		Info: &openapi3.Info{
+			Title:   "API",
+			Version: "1.0.0",
+		},
+		Servers: openapi3.Servers{{
+			URL: "https://api.example.com",
+		}},
+	}
+
+	// Keep a reference to the original servers slice
+	originalServersLength := len(spec.Servers)
+
+	// Create middleware with KeepServers=false (servers should be excluded from output)
+	e := echo.New()
+	e.Use(SwaggerYamlSpecWithConfig(spec, SwaggerYamlConfig{KeepServers: false}))
+	e.GET("/users", func(c echo.Context) error {
+		return c.String(http.StatusOK, "ok")
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/swagger.yaml", nil)
+	rec := httptest.NewRecorder()
+	e.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d", http.StatusOK, rec.Code)
+	}
+
+	// Verify the response does not contain servers
+	got := rec.Body.String()
+	if strings.Contains(got, "servers:") || strings.Contains(got, "https://api.example.com") {
+		t.Fatalf("expected servers to be excluded from response, but found them in: %q", got)
+	}
+
+	// CRITICAL: Verify the original spec object was NOT mutated
+	if len(spec.Servers) != originalServersLength {
+		t.Fatalf("spec.Servers was mutated! original length=%d, current length=%d", originalServersLength, len(spec.Servers))
+	}
+
+	if spec.Servers == nil {
+		t.Fatal("spec.Servers was set to nil - the spec object was mutated by the middleware")
+	}
+
+	if len(spec.Servers) > 0 && spec.Servers[0].URL != "https://api.example.com" {
+		t.Fatalf("spec.Servers[0].URL was mutated! expected 'https://api.example.com', got %q", spec.Servers[0].URL)
+	}
+
+	// Test with KeepServers=true to ensure it works correctly
+	e2 := echo.New()
+	e2.Use(SwaggerYamlSpecWithConfig(spec, SwaggerYamlConfig{KeepServers: true}))
+	e2.GET("/users", func(c echo.Context) error {
+		return c.String(http.StatusOK, "ok")
+	})
+
+	req2 := httptest.NewRequest(http.MethodGet, "/swagger.yaml", nil)
+	rec2 := httptest.NewRecorder()
+	e2.ServeHTTP(rec2, req2)
+
+	if rec2.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d", http.StatusOK, rec2.Code)
+	}
+
+	// With KeepServers=true, servers should be in the output
+	got2 := rec2.Body.String()
+	if !strings.Contains(got2, "servers:") || !strings.Contains(got2, "https://api.example.com") {
+		t.Fatalf("expected servers to be included in response with KeepServers=true, but not found in: %q", got2)
+	}
+
+	// Verify spec still has servers after second middleware call
+	if len(spec.Servers) != originalServersLength {
+		t.Fatalf("spec.Servers length changed after second middleware call! original length=%d, current length=%d", originalServersLength, len(spec.Servers))
+	}
+}
+
 func containsAll(s string, parts ...string) bool {
 	for _, part := range parts {
 		if !strings.Contains(s, part) {
