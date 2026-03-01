@@ -11,7 +11,7 @@ import (
 
 func BenchmarkSwaggerYamlGET(b *testing.B) {
 	e := echo.New()
-	mw := SwaggerYamlSpec(&openapi3.T{
+	mw := SwaggerYaml(&openapi3.T{
 		OpenAPI: "3.0.3",
 		Info: &openapi3.Info{
 			Title:   "API",

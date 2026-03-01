@@ -10,7 +10,7 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-func TestSwaggerYamlSpec_RequestRouting(t *testing.T) {
+func TestSwaggerYaml_RequestRouting(t *testing.T) {
 	tests := []struct {
 		name      string
 		cfg       SwaggerYamlConfig
@@ -44,7 +44,7 @@ func TestSwaggerYamlSpec_RequestRouting(t *testing.T) {
 			}
 
 			e := echo.New()
-			e.Use(SwaggerYamlSpecWithConfig(spec, tt.cfg))
+			e.Use(SwaggerYamlWithConfig(spec, tt.cfg))
 			e.GET("/users", func(c echo.Context) error {
 				return c.String(http.StatusOK, "ok")
 			})
@@ -68,7 +68,7 @@ func TestSwaggerYamlSpec_RequestRouting(t *testing.T) {
 	}
 }
 
-func TestSwaggerYamlSpec_KeepServers(t *testing.T) {
+func TestSwaggerYaml_KeepServers(t *testing.T) {
 	tests := []struct {
 		name         string
 		cfg          SwaggerYamlConfig
@@ -102,7 +102,7 @@ func TestSwaggerYamlSpec_KeepServers(t *testing.T) {
 				}},
 			}
 
-			e.Use(SwaggerYamlSpecWithConfig(spec, tt.cfg))
+			e.Use(SwaggerYamlWithConfig(spec, tt.cfg))
 			e.GET("/users", func(c echo.Context) error {
 				return c.String(http.StatusOK, "ok")
 			})
@@ -124,9 +124,9 @@ func TestSwaggerYamlSpec_KeepServers(t *testing.T) {
 	}
 }
 
-func TestSwaggerYamlSpec_ConstructorsAcceptEmptyInputs(t *testing.T) {
+func TestSwaggerYaml_ConstructorsAcceptEmptyInputs(t *testing.T) {
 	e := echo.New()
-	e.Use(SwaggerYamlSpec(nil))
+	e.Use(SwaggerYaml(nil))
 
 	req := httptest.NewRequest(http.MethodGet, "/swagger.yaml", nil)
 	rec := httptest.NewRecorder()
@@ -157,7 +157,7 @@ func TestSwaggerYamlSpec_ConstructorsAcceptEmptyInputs(t *testing.T) {
 	}
 }
 
-func TestSwaggerYamlSpec_NotMutatedByMiddleware(t *testing.T) {
+func TestSwaggerYaml_NotMutatedByMiddleware(t *testing.T) {
 	spec := &openapi3.T{
 		OpenAPI: "3.0.3",
 		Info: &openapi3.Info{
@@ -174,7 +174,7 @@ func TestSwaggerYamlSpec_NotMutatedByMiddleware(t *testing.T) {
 
 	// Create middleware with KeepServers=false (servers should be excluded from output)
 	e := echo.New()
-	e.Use(SwaggerYamlSpecWithConfig(spec, SwaggerYamlConfig{KeepServers: false}))
+	e.Use(SwaggerYamlWithConfig(spec, SwaggerYamlConfig{KeepServers: false}))
 	e.GET("/users", func(c echo.Context) error {
 		return c.String(http.StatusOK, "ok")
 	})
@@ -208,7 +208,7 @@ func TestSwaggerYamlSpec_NotMutatedByMiddleware(t *testing.T) {
 
 	// Test with KeepServers=true to ensure it works correctly
 	e2 := echo.New()
-	e2.Use(SwaggerYamlSpecWithConfig(spec, SwaggerYamlConfig{KeepServers: true}))
+	e2.Use(SwaggerYamlWithConfig(spec, SwaggerYamlConfig{KeepServers: true}))
 	e2.GET("/users", func(c echo.Context) error {
 		return c.String(http.StatusOK, "ok")
 	})

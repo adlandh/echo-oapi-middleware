@@ -23,13 +23,13 @@ type SwaggerYamlConfig struct {
 	KeepServers bool
 }
 
-// SwaggerYamlSpec creates middleware that serves swagger YAML from openapi3.T with default config.
-func SwaggerYamlSpec(spec *openapi3.T) echo.MiddlewareFunc {
-	return SwaggerYamlSpecWithConfig(spec, SwaggerYamlConfig{})
+// SwaggerYaml creates middleware that serves swagger YAML from openapi3.T with default config.
+func SwaggerYaml(spec *openapi3.T) echo.MiddlewareFunc {
+	return SwaggerYamlWithConfig(spec, SwaggerYamlConfig{})
 }
 
-// SwaggerYamlSpecWithConfig creates middleware that serves swagger YAML from openapi3.T.
-func SwaggerYamlSpecWithConfig(spec *openapi3.T, cfg SwaggerYamlConfig) echo.MiddlewareFunc {
+// SwaggerYamlWithConfig creates middleware that serves swagger YAML from openapi3.T.
+func SwaggerYamlWithConfig(spec *openapi3.T, cfg SwaggerYamlConfig) echo.MiddlewareFunc {
 	var body []byte
 
 	if spec == nil {

@@ -23,19 +23,19 @@ type SwaggerUIConfig struct {
 	SpecPath string
 }
 
-// SwaggerUISpec creates middleware that serves swagger UI and YAML from openapi3.T.
-func SwaggerUISpec(spec *openapi3.T) echo.MiddlewareFunc {
-	return SwaggerUISpecWithConfig(spec, SwaggerUIConfig{})
+// SwaggerUI creates middleware that serves swagger UI and YAML from openapi3.T.
+func SwaggerUI(spec *openapi3.T) echo.MiddlewareFunc {
+	return SwaggerUIWithConfig(spec, SwaggerUIConfig{})
 }
 
-// SwaggerUISpecWithConfig creates middleware that serves swagger UI and YAML from openapi3.T.
-func SwaggerUISpecWithConfig(spec *openapi3.T, cfg SwaggerUIConfig) echo.MiddlewareFunc {
+// SwaggerUIWithConfig creates middleware that serves swagger UI and YAML from openapi3.T.
+func SwaggerUIWithConfig(spec *openapi3.T, cfg SwaggerUIConfig) echo.MiddlewareFunc {
 	specPath := cfg.SpecPath
 	if specPath == "" {
 		specPath = defaultPath
 	}
 
-	specMW := SwaggerYamlSpecWithConfig(spec, SwaggerYamlConfig{Path: specPath})
+	specMW := SwaggerYamlWithConfig(spec, SwaggerYamlConfig{Path: specPath})
 
 	return swaggerUIMiddleware(specMW, cfg.Path, specPath)
 }

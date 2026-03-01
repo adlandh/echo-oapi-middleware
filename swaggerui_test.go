@@ -10,9 +10,9 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-func TestSwaggerUISpec_DefaultPaths(t *testing.T) {
+func TestSwaggerUI_DefaultPaths(t *testing.T) {
 	e := echo.New()
-	mw := SwaggerUISpec(&openapi3.T{
+	mw := SwaggerUI(&openapi3.T{
 		OpenAPI: "3.0.3",
 		Info:    &openapi3.Info{Title: "API", Version: "1.0.0"},
 	})
@@ -38,7 +38,7 @@ func TestSwaggerUISpec_DefaultPaths(t *testing.T) {
 
 func TestSwaggerUI_ConstructorsAcceptEmptyInputs(t *testing.T) {
 	e := echo.New()
-	e.Use(SwaggerUISpec(nil))
+	e.Use(SwaggerUI(nil))
 
 	reqUI := httptest.NewRequest(http.MethodGet, "/swagger", nil)
 	recUI := httptest.NewRecorder()
