@@ -21,6 +21,10 @@ type SwaggerUIConfig struct {
 	// SpecPath is the endpoint path where swagger YAML is served.
 	// Default: /swagger.yaml
 	SpecPath string
+
+	// KeepServers indicates whether to keep the servers field from the spec.
+	// Default: false
+	KeepServers bool
 }
 
 // SwaggerUI creates middleware that serves swagger UI and YAML from openapi3.T.
@@ -35,7 +39,7 @@ func SwaggerUIWithConfig(spec *openapi3.T, cfg SwaggerUIConfig) echo.MiddlewareF
 		specPath = defaultPath
 	}
 
-	specMW := SwaggerYamlWithConfig(spec, SwaggerYamlConfig{Path: specPath})
+	specMW := SwaggerYamlWithConfig(spec, SwaggerYamlConfig{Path: specPath, KeepServers: cfg.KeepServers})
 
 	return swaggerUIMiddleware(specMW, cfg.Path, specPath)
 }
