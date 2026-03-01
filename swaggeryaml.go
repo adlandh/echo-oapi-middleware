@@ -23,23 +23,6 @@ type SwaggerYamlConfig struct {
 	KeepServers bool
 }
 
-// SwaggerYamlBytes creates middleware that serves swagger YAML from raw bytes with default config.
-func SwaggerYamlBytes(specBytes []byte) echo.MiddlewareFunc {
-	return SwaggerYamlBytesWithConfig(specBytes, SwaggerYamlConfig{})
-}
-
-// SwaggerYamlBytesWithConfig creates middleware that serves swagger YAML from raw bytes.
-func SwaggerYamlBytesWithConfig(specBytes []byte, cfg SwaggerYamlConfig) echo.MiddlewareFunc {
-	var body []byte
-
-	if len(specBytes) != 0 {
-		body = make([]byte, len(specBytes))
-		copy(body, specBytes)
-	}
-
-	return swaggerYamlMiddleware(body, cfg)
-}
-
 // SwaggerYamlSpec creates middleware that serves swagger YAML from openapi3.T with default config.
 func SwaggerYamlSpec(spec *openapi3.T) echo.MiddlewareFunc {
 	return SwaggerYamlSpecWithConfig(spec, SwaggerYamlConfig{})

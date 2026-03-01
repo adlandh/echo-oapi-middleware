@@ -23,23 +23,6 @@ type SwaggerUIConfig struct {
 	SpecPath string
 }
 
-// SwaggerUIBytes creates middleware that serves swagger UI and YAML from raw bytes.
-func SwaggerUIBytes(specBytes []byte) echo.MiddlewareFunc {
-	return SwaggerUIBytesWithConfig(specBytes, SwaggerUIConfig{})
-}
-
-// SwaggerUIBytesWithConfig creates middleware that serves swagger UI and YAML from raw bytes.
-func SwaggerUIBytesWithConfig(specBytes []byte, cfg SwaggerUIConfig) echo.MiddlewareFunc {
-	specPath := cfg.SpecPath
-	if specPath == "" {
-		specPath = defaultPath
-	}
-
-	specMW := SwaggerYamlBytesWithConfig(specBytes, SwaggerYamlConfig{Path: specPath})
-
-	return swaggerUIMiddleware(specMW, cfg.Path, specPath)
-}
-
 // SwaggerUISpec creates middleware that serves swagger UI and YAML from openapi3.T.
 func SwaggerUISpec(spec *openapi3.T) echo.MiddlewareFunc {
 	return SwaggerUISpecWithConfig(spec, SwaggerUIConfig{})
