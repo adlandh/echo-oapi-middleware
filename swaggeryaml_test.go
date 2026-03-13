@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/getkin/kin-openapi/openapi3"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 )
 
 func TestSwaggerYaml_RequestRouting(t *testing.T) {
@@ -45,7 +45,7 @@ func TestSwaggerYaml_RequestRouting(t *testing.T) {
 
 			e := echo.New()
 			e.Use(SwaggerYamlWithConfig(spec, tt.cfg))
-			e.GET("/users", func(c echo.Context) error {
+			e.GET("/users", func(c *echo.Context) error {
 				return c.String(http.StatusOK, "ok")
 			})
 
@@ -103,7 +103,7 @@ func TestSwaggerYaml_KeepServers(t *testing.T) {
 			}
 
 			e.Use(SwaggerYamlWithConfig(spec, tt.cfg))
-			e.GET("/users", func(c echo.Context) error {
+			e.GET("/users", func(c *echo.Context) error {
 				return c.String(http.StatusOK, "ok")
 			})
 
@@ -175,7 +175,7 @@ func TestSwaggerYaml_NotMutatedByMiddleware(t *testing.T) {
 	// Create middleware with KeepServers=false (servers should be excluded from output)
 	e := echo.New()
 	e.Use(SwaggerYamlWithConfig(spec, SwaggerYamlConfig{KeepServers: false}))
-	e.GET("/users", func(c echo.Context) error {
+	e.GET("/users", func(c *echo.Context) error {
 		return c.String(http.StatusOK, "ok")
 	})
 
@@ -209,7 +209,7 @@ func TestSwaggerYaml_NotMutatedByMiddleware(t *testing.T) {
 	// Test with KeepServers=true to ensure it works correctly
 	e2 := echo.New()
 	e2.Use(SwaggerYamlWithConfig(spec, SwaggerYamlConfig{KeepServers: true}))
-	e2.GET("/users", func(c echo.Context) error {
+	e2.GET("/users", func(c *echo.Context) error {
 		return c.String(http.StatusOK, "ok")
 	})
 
