@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/getkin/kin-openapi/openapi3"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 )
 
 func BenchmarkSwaggerYamlGET(b *testing.B) {
@@ -21,7 +21,7 @@ func BenchmarkSwaggerYamlGET(b *testing.B) {
 	})
 
 	e.Use(mw)
-	e.GET("/users", func(c echo.Context) error {
+	e.GET("/users", func(c *echo.Context) error {
 		return c.String(http.StatusOK, "users")
 	})
 

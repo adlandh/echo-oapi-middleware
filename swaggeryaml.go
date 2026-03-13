@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/getkin/kin-openapi/openapi3"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"gopkg.in/yaml.v3"
 )
 
@@ -85,7 +85,7 @@ func swaggerYamlMiddleware(body []byte, cfg SwaggerYamlConfig) echo.MiddlewareFu
 	}
 
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
+		return func(c *echo.Context) error {
 			req := c.Request()
 
 			if req.URL.Path == path && (req.Method == http.MethodGet || req.Method == http.MethodHead) {

@@ -6,7 +6,7 @@ import (
 	"strconv"
 
 	"github.com/getkin/kin-openapi/openapi3"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 )
 
 const defaultUIPath = "/swagger"
@@ -54,7 +54,7 @@ func swaggerUIMiddleware(specMW echo.MiddlewareFunc, uiPath, specPath string) ec
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		handler := specMW(next)
 
-		return func(c echo.Context) error {
+		return func(c *echo.Context) error {
 			req := c.Request()
 
 			if isSwaggerUIPath(req.URL.Path, uiPath) && (req.Method == http.MethodGet || req.Method == http.MethodHead) {
