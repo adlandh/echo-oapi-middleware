@@ -1,11 +1,11 @@
 # Echo OpenAPI Middleware
 
-[![Go Reference](https://pkg.go.dev/badge/github.com/adlandh/echo-oapi-middleware.svg)](https://pkg.go.dev/github.com/adlandh/echo-oapi-middleware)
+[![Go Reference](https://pkg.go.dev/badge/github.com/adlandh/echo-oapi-middleware/v2.svg)](https://pkg.go.dev/github.com/adlandh/echo-oapi-middleware/v2)
 [![Go Report Card](https://goreportcard.com/badge/github.com/adlandh/echo-oapi-middleware)](https://goreportcard.com/report/github.com/adlandh/echo-oapi-middleware)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Go Version](https://img.shields.io/badge/Go-1.25%2B-blue)](https://go.dev/)
 
-Echo middleware for serving OpenAPI/Swagger specifications and UI. Type-safe, zero-dependency (except for Echo and kin-openapi), and battle-tested.
+Echo middleware for serving OpenAPI/Swagger specifications and UI. Type-safe, zero-dependency (except for Echo and kin-openapi).
 
 ## Features
 
@@ -34,7 +34,7 @@ Echo middleware for serving OpenAPI/Swagger specifications and UI. Type-safe, ze
 ## Installation
 
 ```bash
-go get github.com/adlandh/echo-oapi-middleware
+go get github.com/adlandh/echo-oapi-middleware/v2
 ```
 
 ## Quick Start
@@ -46,8 +46,8 @@ package main
 
 import (
     "github.com/getkin/kin-openapi/openapi3"
-    "github.com/labstack/echo/v4"
-    echooapimiddleware "github.com/adlandh/echo-oapi-middleware"
+    "github.com/labstack/echo/v5"
+    echooapimiddleware "github.com/adlandh/echo-oapi-middleware/v2"
 )
 
 func main() {
@@ -62,7 +62,7 @@ func main() {
     // Serves YAML at GET /swagger.yaml
     e.Use(echooapimiddleware.SwaggerYaml(spec))
 
-    e.GET("/api/users", func(c echo.Context) error {
+    e.GET("/api/users", func(c *echo.Context) error {
         return c.JSON(200, []string{"user1", "user2"})
     })
 
@@ -96,8 +96,8 @@ If you use [oapi-codegen](https://github.com/oapi-codegen/oapi-codegen) to gener
 
 ```go
 import (
-    "github.com/labstack/echo/v4"
-    echooapimiddleware "github.com/adlandh/echo-oapi-middleware"
+    "github.com/labstack/echo/v5"
+    echooapimiddleware "github.com/adlandh/echo-oapi-middleware/v2"
     "your-generated-api/pkg/api"
 )
 
@@ -307,7 +307,7 @@ For offline use, you'll need to serve these assets separately or use a local cop
 ## Requirements
 
 - Go 1.25+
-- [Echo v4](https://echo.labstack.com/) — `github.com/labstack/echo/v4`
+- [Echo v5](https://echo.labstack.com/) — `github.com/labstack/echo/v5`
 - [kin-openapi](https://github.com/getkin/kin-openapi) — `github.com/getkin/kin-openapi`
 
 ## License
