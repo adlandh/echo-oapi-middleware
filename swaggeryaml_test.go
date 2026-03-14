@@ -233,6 +233,101 @@ func TestSwaggerYaml_NotMutatedByMiddleware(t *testing.T) {
 	}
 }
 
+func TestSwaggerYaml_CustomPathHeadAndPassthrough(t *testing.T) {
+	e := echo.New()
+	e.Use(SwaggerYamlWithConfig(&openapi3.T{
+		OpenAPI: "3.0.3",
+		Info:    &openapi3.Info{Title: "API", Version: "1.0.0"},
+	}, SwaggerYamlConfig{Path: "/openapi.yaml"}))
+	e.GET("/users", func(c *echo.Context) error {
+		return c.String(http.StatusOK, "users")
+	})
+
+	reqHead := httptest.NewRequest(http.MethodHead, "/openapi.yaml", nil)
+	recHead := httptest.NewRecorder()
+	e.ServeHTTP(recHead, reqHead)
+
+	if recHead.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d", http.StatusOK, recHead.Code)
+	}
+
+	if got := recHead.Header().Get(echo.HeaderContentType); got != contentTypeYAML {
+		t.Fatalf("unexpected yaml content type: %q", got)
+	}
+
+	if got := recHead.Header().Get(echo.HeaderContentLength); got == "" || got == "0" {
+		t.Fatalf("unexpected content-length: %q", got)
+	}
+
+	if recHead.Body.Len() != 0 {
+		t.Fatalf("expected empty HEAD body, got %q", recHead.Body.String())
+	}
+
+	reqPassthrough := httptest.NewRequest(http.MethodPost, "/openapi.yaml", nil)
+	recPassthrough := httptest.NewRecorder()
+	e.ServeHTTP(recPassthrough, reqPassthrough)
+
+	if recPassthrough.Code != http.StatusNotFound {
+		t.Fatalf("expected status %d, got %d", http.StatusNotFound, recPassthrough.Code)
+	}
+
+	reqRoute := httptest.NewRequest(http.MethodGet, "/users", nil)
+	recRoute := httptest.NewRecorder()
+	e.ServeHTTP(recRoute, reqRoute)
+
+	if recRoute.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d", http.StatusOK, recRoute.Code)
+	}
+
+	if recRoute.Body.String() != "users" {
+		t.Fatalf("unexpected passthrough body: %q", recRoute.Body.String())
+	}
+}
+
+func TestSpecWrapperMarshalYAML(t *testing.T) {
+	spec := &openapi3.T{
+		OpenAPI: "3.0.3",
+		Info:    &openapi3.Info{Title: "API", Version: "1.0.0"},
+		Servers: openapi3.Servers{{URL: "https://api.example.com"}},
+	}
+
+	t.Run("keeps servers when enabled", func(t *testing.T) {
+		got, err := (&specWrapper{spec: spec, keepServers: true}).MarshalYAML()
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		returnedSpec, ok := got.(*openapi3.T)
+		if !ok {
+			t.Fatalf("expected *openapi3.T, got %T", got)
+		}
+
+		if returnedSpec != spec {
+			t.Fatal("expected original spec pointer to be returned")
+		}
+	})
+
+	t.Run("strips servers when disabled", func(t *testing.T) {
+		got, err := (&specWrapper{spec: spec, keepServers: false}).MarshalYAML()
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		data, ok := got.(map[string]any)
+		if !ok {
+			t.Fatalf("expected map[string]any, got %T", got)
+		}
+
+		if _, exists := data["servers"]; exists {
+			t.Fatalf("expected servers to be removed, got %#v", data["servers"])
+		}
+
+		if data["openapi"] != spec.OpenAPI {
+			t.Fatalf("expected openapi %q, got %#v", spec.OpenAPI, data["openapi"])
+		}
+	})
+}
+
 func containsAll(s string, parts ...string) bool {
 	for _, part := range parts {
 		if !strings.Contains(s, part) {

@@ -68,3 +68,57 @@ func TestSwaggerUI_ConstructorsAcceptEmptyInputs(t *testing.T) {
 		t.Fatalf("expected empty yaml body, got %q", recYAML.Body.String())
 	}
 }
+
+func TestSwaggerUI_CustomPathHeadAndPassthrough(t *testing.T) {
+	e := echo.New()
+	e.Use(SwaggerUIWithConfig(&openapi3.T{
+		OpenAPI: "3.0.3",
+		Info:    &openapi3.Info{Title: "API", Version: "1.0.0"},
+	}, SwaggerUIConfig{
+		Path:     "/docs",
+		SpecPath: "/openapi.yaml",
+	}))
+	e.GET("/users", func(c *echo.Context) error {
+		return c.String(http.StatusOK, "users")
+	})
+
+	reqHead := httptest.NewRequest(http.MethodHead, "/docs/index.html", nil)
+	recHead := httptest.NewRecorder()
+	e.ServeHTTP(recHead, reqHead)
+
+	if recHead.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d", http.StatusOK, recHead.Code)
+	}
+
+	if got := recHead.Header().Get(echo.HeaderContentType); got != contentTypeHTML {
+		t.Fatalf("unexpected html content type: %q", got)
+	}
+
+	if got := recHead.Header().Get(echo.HeaderContentLength); got == "" || got == "0" {
+		t.Fatalf("unexpected content-length: %q", got)
+	}
+
+	if recHead.Body.Len() != 0 {
+		t.Fatalf("expected empty HEAD body, got %q", recHead.Body.String())
+	}
+
+	reqPassthrough := httptest.NewRequest(http.MethodPost, "/docs", nil)
+	recPassthrough := httptest.NewRecorder()
+	e.ServeHTTP(recPassthrough, reqPassthrough)
+
+	if recPassthrough.Code != http.StatusNotFound {
+		t.Fatalf("expected status %d, got %d", http.StatusNotFound, recPassthrough.Code)
+	}
+
+	reqRoute := httptest.NewRequest(http.MethodGet, "/users", nil)
+	recRoute := httptest.NewRecorder()
+	e.ServeHTTP(recRoute, reqRoute)
+
+	if recRoute.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d", http.StatusOK, recRoute.Code)
+	}
+
+	if recRoute.Body.String() != "users" {
+		t.Fatalf("unexpected passthrough body: %q", recRoute.Body.String())
+	}
+}
