@@ -34,3 +34,7 @@ description: Use when working on github.com/adlandh/echo-oapi-middleware/v2, an 
 - Keep the middleware chain passthrough behavior explicit; tests depend on non-matching requests reaching downstream Echo routes.
 - Prefer small direct functions over new abstractions; this library is intentionally tiny.
 - If changing config defaults or route matching, update both README examples and tests in the same change.
+
+## Integrating Into A Project
+- **Do not try to embed or parse `swagger.yaml` / `openapi.yaml` at runtime.** This library accepts `*openapi3.T` from `github.com/getkin/kin-openapi/openapi3`, not a raw YAML file.
+- Before reaching for `//go:embed` or `os.ReadFile`, check the generated code — most OpenAPI code generators (e.g. `oapi-codegen`) produce a `GetSpec` function that returns the parsed `*openapi3.T` directly. Pass that to `SwaggerYAML` or `SwaggerUI`.
