@@ -3,7 +3,7 @@ module github.com/adlandh/echo-oapi-middleware/v2
 go 1.25.0
 
 require (
-	github.com/getkin/kin-openapi v0.137.0
+	github.com/getkin/kin-openapi v0.138.0
 	github.com/labstack/echo/v5 v5.1.1
 	gopkg.in/yaml.v3 v3.0.1
 )
