@@ -55,7 +55,6 @@ func SwaggerUIWithConfig(spec *openapi3.T, cfg SwaggerUIConfig) echo.MiddlewareF
 }
 
 func swaggerUIMiddleware(specMW echo.MiddlewareFunc, uiPath, specPath string) echo.MiddlewareFunc {
-
 	body := []byte(swaggerUIHTML(specPath))
 
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
