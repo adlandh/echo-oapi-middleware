@@ -32,8 +32,9 @@ func SwaggerUI(spec *openapi3.T) echo.MiddlewareFunc {
 }
 
 // SwaggerUIWithConfig creates middleware that serves swagger UI and YAML from openapi3.T.
-// Panics if cfg.Path and cfg.SpecPath resolve to the same value, since the spec
-// handler would shadow the UI handler and make it unreachable.
+// If cfg.Path and cfg.SpecPath resolve to the same value the spec handler
+// would shadow the UI handler, so the middleware serves HTTP 500 for that
+// path instead of silently making the UI unreachable.
 func SwaggerUIWithConfig(spec *openapi3.T, cfg SwaggerUIConfig) echo.MiddlewareFunc {
 	specPath := cfg.SpecPath
 	if specPath == "" {
@@ -46,12 +47,26 @@ func SwaggerUIWithConfig(spec *openapi3.T, cfg SwaggerUIConfig) echo.MiddlewareF
 	}
 
 	if uiPath == specPath {
-		panic("echo-oapi-middleware: SwaggerUIConfig.Path and SpecPath must differ (got " + uiPath + ")")
+		return conflictMiddleware(uiPath)
 	}
 
 	specMW := SwaggerYamlWithConfig(spec, SwaggerYamlConfig{Path: specPath, KeepServers: cfg.KeepServers})
 
 	return swaggerUIMiddleware(specMW, uiPath, specPath)
+}
+
+func conflictMiddleware(path string) echo.MiddlewareFunc {
+	msg := "echo-oapi-middleware: SwaggerUIConfig.Path and SpecPath must differ (got " + path + ")"
+
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c *echo.Context) error {
+			if c.Request().URL.Path == path {
+				return echo.NewHTTPError(http.StatusInternalServerError, msg)
+			}
+
+			return next(c)
+		}
+	}
 }
 
 func swaggerUIMiddleware(specMW echo.MiddlewareFunc, uiPath, specPath string) echo.MiddlewareFunc {
