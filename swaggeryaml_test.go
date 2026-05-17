@@ -284,50 +284,6 @@ func TestSwaggerYaml_CustomPathHeadAndPassthrough(t *testing.T) {
 	}
 }
 
-func TestSpecWrapperMarshalYAML(t *testing.T) {
-	spec := &openapi3.T{
-		OpenAPI: "3.0.3",
-		Info:    &openapi3.Info{Title: "API", Version: "1.0.0"},
-		Servers: openapi3.Servers{{URL: "https://api.example.com"}},
-	}
-
-	t.Run("keeps servers when enabled", func(t *testing.T) {
-		got, err := (&specWrapper{spec: spec, keepServers: true}).MarshalYAML()
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-
-		returnedSpec, ok := got.(*openapi3.T)
-		if !ok {
-			t.Fatalf("expected *openapi3.T, got %T", got)
-		}
-
-		if returnedSpec != spec {
-			t.Fatal("expected original spec pointer to be returned")
-		}
-	})
-
-	t.Run("strips servers when disabled", func(t *testing.T) {
-		got, err := (&specWrapper{spec: spec, keepServers: false}).MarshalYAML()
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-
-		data, ok := got.(map[string]any)
-		if !ok {
-			t.Fatalf("expected map[string]any, got %T", got)
-		}
-
-		if _, exists := data["servers"]; exists {
-			t.Fatalf("expected servers to be removed, got %#v", data["servers"])
-		}
-
-		if data["openapi"] != spec.OpenAPI {
-			t.Fatalf("expected openapi %q, got %#v", spec.OpenAPI, data["openapi"])
-		}
-	})
-}
-
 func containsAll(s string, parts ...string) bool {
 	for _, part := range parts {
 		if !strings.Contains(s, part) {

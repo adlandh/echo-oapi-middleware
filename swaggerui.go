@@ -1,7 +1,6 @@
 package echooapimiddleware
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -33,21 +32,29 @@ func SwaggerUI(spec *openapi3.T) echo.MiddlewareFunc {
 }
 
 // SwaggerUIWithConfig creates middleware that serves swagger UI and YAML from openapi3.T.
+// Panics if cfg.Path and cfg.SpecPath resolve to the same value, since the spec
+// handler would shadow the UI handler and make it unreachable.
 func SwaggerUIWithConfig(spec *openapi3.T, cfg SwaggerUIConfig) echo.MiddlewareFunc {
 	specPath := cfg.SpecPath
 	if specPath == "" {
-		specPath = defaultPath
+		specPath = defaultSpecPath
+	}
+
+	uiPath := cfg.Path
+	if uiPath == "" {
+		uiPath = defaultUIPath
+	}
+
+	if uiPath == specPath {
+		panic("echo-oapi-middleware: SwaggerUIConfig.Path and SpecPath must differ (got " + uiPath + ")")
 	}
 
 	specMW := SwaggerYamlWithConfig(spec, SwaggerYamlConfig{Path: specPath, KeepServers: cfg.KeepServers})
 
-	return swaggerUIMiddleware(specMW, cfg.Path, specPath)
+	return swaggerUIMiddleware(specMW, uiPath, specPath)
 }
 
 func swaggerUIMiddleware(specMW echo.MiddlewareFunc, uiPath, specPath string) echo.MiddlewareFunc {
-	if uiPath == "" {
-		uiPath = defaultUIPath
-	}
 
 	body := []byte(swaggerUIHTML(specPath))
 
@@ -61,7 +68,7 @@ func swaggerUIMiddleware(specMW echo.MiddlewareFunc, uiPath, specPath string) ec
 				c.Response().Header().Set(echo.HeaderContentType, contentTypeHTML)
 
 				if req.Method == http.MethodHead {
-					c.Response().Header().Set(echo.HeaderContentLength, fmt.Sprintf("%d", len(body)))
+					c.Response().Header().Set(echo.HeaderContentLength, strconv.Itoa(len(body)))
 
 					return c.NoContent(http.StatusOK)
 				}
@@ -75,11 +82,7 @@ func swaggerUIMiddleware(specMW echo.MiddlewareFunc, uiPath, specPath string) ec
 }
 
 func isSwaggerUIPath(path, uiPath string) bool {
-	if path == uiPath || path == uiPath+"/" {
-		return true
-	}
-
-	return path == uiPath+"/index.html"
+	return path == uiPath || path == uiPath+"/" || path == uiPath+"/index.html" || path == uiPath+"/index.htm"
 }
 
 func swaggerUIHTML(specPath string) string {

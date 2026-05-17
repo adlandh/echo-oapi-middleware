@@ -1,16 +1,15 @@
 package echooapimiddleware
 
 import (
-	"fmt"
-	"log/slog"
 	"net/http"
+	"strconv"
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/labstack/echo/v5"
 	"gopkg.in/yaml.v3"
 )
 
-const defaultPath = "/swagger.yaml"
+const defaultSpecPath = "/swagger.yaml"
 const contentTypeYAML = "text/yaml; charset=utf-8"
 
 // SwaggerYamlConfig configures the swagger YAML endpoint middleware.
@@ -29,59 +28,35 @@ func SwaggerYaml(spec *openapi3.T) echo.MiddlewareFunc {
 }
 
 // SwaggerYamlWithConfig creates middleware that serves swagger YAML from openapi3.T.
+// If spec is nil, the endpoint serves an empty 200 OK. If marshalling fails, the
+// endpoint serves 500 at request time so callers can observe the failure.
 func SwaggerYamlWithConfig(spec *openapi3.T, cfg SwaggerYamlConfig) echo.MiddlewareFunc {
-	var body []byte
+	var (
+		body       []byte
+		marshalErr error
+	)
 
-	if spec == nil {
-		return swaggerYamlMiddleware(body, cfg)
+	if spec != nil {
+		toMarshal := any(spec)
+		if !cfg.KeepServers {
+			// Shallow-copy the struct so we can null out Servers without
+			// mutating the caller's spec. Nested fields are still shared,
+			// but yaml.Marshal only reads them.
+			specCopy := *spec
+			specCopy.Servers = nil
+			toMarshal = &specCopy
+		}
+
+		body, marshalErr = yaml.Marshal(toMarshal)
 	}
 
-	// Create a wrapper that marshals without servers if KeepServers is false.
-	// This avoids mutating the caller's spec object.
-	wrapper := &specWrapper{spec: spec, keepServers: cfg.KeepServers}
-
-	body, err := yaml.Marshal(wrapper)
-	if err != nil {
-		slog.Warn("failed to marshal openapi spec to yaml", "error", err)
-	}
-
-	return swaggerYamlMiddleware(body, cfg)
+	return swaggerYamlMiddleware(body, marshalErr, cfg)
 }
 
-// specWrapper wraps an openapi3.T and provides custom marshalling that optionally excludes servers.
-type specWrapper struct {
-	spec        *openapi3.T
-	keepServers bool
-}
-
-// MarshalYAML implements yaml.Marshaler to marshal the spec without servers if keepServers is false.
-func (sw *specWrapper) MarshalYAML() (any, error) {
-	if sw.keepServers {
-		return sw.spec, nil
-	}
-
-	// Marshal to intermediate format, strip servers, then return for marshalling.
-	// We need to create a modified version without mutating the original.
-	// The simplest approach: marshal the spec, unmarshal into a map, remove servers, return the map.
-	marshalled, err := yaml.Marshal(sw.spec)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal openapi spec: %w", err)
-	}
-
-	var data map[string]any
-	if err := yaml.Unmarshal(marshalled, &data); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal openapi spec: %w", err)
-	}
-
-	delete(data, "servers")
-
-	return data, nil
-}
-
-func swaggerYamlMiddleware(body []byte, cfg SwaggerYamlConfig) echo.MiddlewareFunc {
+func swaggerYamlMiddleware(body []byte, marshalErr error, cfg SwaggerYamlConfig) echo.MiddlewareFunc {
 	path := cfg.Path
 	if path == "" {
-		path = defaultPath
+		path = defaultSpecPath
 	}
 
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
@@ -89,10 +64,14 @@ func swaggerYamlMiddleware(body []byte, cfg SwaggerYamlConfig) echo.MiddlewareFu
 			req := c.Request()
 
 			if req.URL.Path == path && (req.Method == http.MethodGet || req.Method == http.MethodHead) {
+				if marshalErr != nil {
+					return echo.NewHTTPError(http.StatusInternalServerError, "failed to marshal openapi spec").Wrap(marshalErr)
+				}
+
 				c.Response().Header().Set(echo.HeaderContentType, contentTypeYAML)
 
 				if req.Method == http.MethodHead {
-					c.Response().Header().Set(echo.HeaderContentLength, fmt.Sprintf("%d", len(body)))
+					c.Response().Header().Set(echo.HeaderContentLength, strconv.Itoa(len(body)))
 
 					return c.NoContent(http.StatusOK)
 				}
