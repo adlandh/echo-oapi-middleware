@@ -104,7 +104,7 @@ import (
 func main() {
     e := echo.New()
 
-    spec, _ := api.GetSwagger() // From generated code
+    spec, _ := api.GetSpec() // From generated code, GetSwagger() for older versions of oapi-codegen
 
     e.Use(echooapimiddleware.SwaggerUI(spec))
     // ...
