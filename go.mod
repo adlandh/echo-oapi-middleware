@@ -4,7 +4,7 @@ go 1.25.0
 
 require (
 	github.com/getkin/kin-openapi v0.142.0
-	github.com/labstack/echo/v5 v5.2.1
+	github.com/labstack/echo/v5 v5.3.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -15,6 +15,5 @@ require (
 	github.com/oasdiff/yaml v0.1.1 // indirect
 	github.com/oasdiff/yaml3 v0.0.14 // indirect
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.2 // indirect
-	golang.org/x/net v0.55.0 // indirect
-	golang.org/x/text v0.37.0 // indirect
+	golang.org/x/text v0.38.0 // indirect
 )
