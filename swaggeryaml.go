@@ -9,8 +9,10 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-const defaultSpecPath = "/swagger.yaml"
-const contentTypeYAML = "text/yaml; charset=utf-8"
+const (
+	defaultSpecPath = "/swagger.yaml"
+	contentTypeYAML = "text/yaml; charset=utf-8"
+)
 
 // SwaggerYamlConfig configures the swagger YAML endpoint middleware.
 type SwaggerYamlConfig struct {
@@ -31,24 +33,21 @@ func SwaggerYaml(spec *openapi3.T) echo.MiddlewareFunc {
 // If spec is nil, the endpoint serves an empty 200 OK. If marshalling fails, the
 // endpoint serves 500 at request time so callers can observe the failure.
 func SwaggerYamlWithConfig(spec *openapi3.T, cfg SwaggerYamlConfig) echo.MiddlewareFunc {
-	var (
-		body       []byte
-		marshalErr error
-	)
-
-	if spec != nil {
-		toMarshal := any(spec)
-		if !cfg.KeepServers {
-			// Shallow-copy the struct so we can null out Servers without
-			// mutating the caller's spec. Nested fields are still shared,
-			// but yaml.Marshal only reads them.
-			specCopy := *spec
-			specCopy.Servers = nil
-			toMarshal = &specCopy
-		}
-
-		body, marshalErr = yaml.Marshal(toMarshal)
+	if spec == nil {
+		return swaggerYamlMiddleware(nil, nil, cfg)
 	}
+
+	toMarshal := any(spec)
+	if !cfg.KeepServers {
+		// Shallow-copy the struct so we can null out Servers without
+		// mutating the caller's spec. Nested fields are still shared,
+		// but yaml.Marshal only reads them.
+		specCopy := *spec
+		specCopy.Servers = nil
+		toMarshal = &specCopy
+	}
+
+	body, marshalErr := yaml.Marshal(toMarshal)
 
 	return swaggerYamlMiddleware(body, marshalErr, cfg)
 }
@@ -63,23 +62,27 @@ func swaggerYamlMiddleware(body []byte, marshalErr error, cfg SwaggerYamlConfig)
 		return func(c *echo.Context) error {
 			req := c.Request()
 
-			if req.URL.Path == path && (req.Method == http.MethodGet || req.Method == http.MethodHead) {
-				if marshalErr != nil {
-					return echo.NewHTTPError(http.StatusInternalServerError, "failed to marshal openapi spec").Wrap(marshalErr)
-				}
-
-				c.Response().Header().Set(echo.HeaderContentType, contentTypeYAML)
-
-				if req.Method == http.MethodHead {
-					c.Response().Header().Set(echo.HeaderContentLength, strconv.Itoa(len(body)))
-
-					return c.NoContent(http.StatusOK)
-				}
-
-				return c.Blob(http.StatusOK, contentTypeYAML, body)
+			if req.URL.Path != path || (req.Method != http.MethodGet && req.Method != http.MethodHead) {
+				return next(c)
 			}
 
-			return next(c)
+			if marshalErr != nil {
+				return echo.NewHTTPError(http.StatusInternalServerError, "failed to marshal openapi spec").Wrap(marshalErr)
+			}
+
+			return servePrecomputed(c, contentTypeYAML, body)
 		}
 	}
+}
+
+//nolint:wrapcheck // Framework response helpers return directly.
+func servePrecomputed(c *echo.Context, contentType string, body []byte) error {
+	c.Response().Header().Set(echo.HeaderContentType, contentType)
+
+	if c.Request().Method == http.MethodHead {
+		c.Response().Header().Set(echo.HeaderContentLength, strconv.Itoa(len(body)))
+		return c.NoContent(http.StatusOK)
+	}
+
+	return c.Blob(http.StatusOK, contentType, body)
 }

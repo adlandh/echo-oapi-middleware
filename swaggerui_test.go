@@ -69,6 +69,25 @@ func TestSwaggerUI_ConstructorsAcceptEmptyInputs(t *testing.T) {
 	}
 }
 
+func TestSwaggerUI_EscapesSpecPath(t *testing.T) {
+	const specPath = `</script><img src=x onerror=alert(document.domain)>`
+
+	e := echo.New()
+	e.Use(SwaggerUIWithConfig(nil, SwaggerUIConfig{SpecPath: specPath}))
+
+	req := httptest.NewRequest(http.MethodGet, "/swagger", http.NoBody)
+	rec := httptest.NewRecorder()
+	e.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d", http.StatusOK, rec.Code)
+	}
+
+	if strings.Contains(rec.Body.String(), specPath) {
+		t.Fatalf("spec path was not escaped: %q", rec.Body.String())
+	}
+}
+
 func TestSwaggerUI_CustomPathHeadAndPassthrough(t *testing.T) {
 	e := echo.New()
 	e.Use(SwaggerUIWithConfig(&openapi3.T{
