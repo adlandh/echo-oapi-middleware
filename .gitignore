@@ -1,2 +1,3 @@
 .golangci.yml
 coverage.out
+coverage.txt

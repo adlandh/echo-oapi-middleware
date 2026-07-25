@@ -1,15 +1,17 @@
 package echooapimiddleware
 
 import (
+	"html/template"
 	"net/http"
-	"strconv"
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/labstack/echo/v5"
 )
 
-const defaultUIPath = "/swagger"
-const contentTypeHTML = "text/html; charset=utf-8"
+const (
+	defaultUIPath   = "/swagger"
+	contentTypeHTML = "text/html; charset=utf-8"
+)
 
 // SwaggerUIConfig configures swagger UI middleware paths.
 type SwaggerUIConfig struct {
@@ -79,15 +81,7 @@ func swaggerUIMiddleware(specMW echo.MiddlewareFunc, uiPath, specPath string) ec
 			req := c.Request()
 
 			if isSwaggerUIPath(req.URL.Path, uiPath) && (req.Method == http.MethodGet || req.Method == http.MethodHead) {
-				c.Response().Header().Set(echo.HeaderContentType, contentTypeHTML)
-
-				if req.Method == http.MethodHead {
-					c.Response().Header().Set(echo.HeaderContentLength, strconv.Itoa(len(body)))
-
-					return c.NoContent(http.StatusOK)
-				}
-
-				return c.Blob(http.StatusOK, contentTypeHTML, body)
+				return servePrecomputed(c, contentTypeHTML, body)
 			}
 
 			return handler(c)
@@ -100,7 +94,7 @@ func isSwaggerUIPath(path, uiPath string) bool {
 }
 
 func swaggerUIHTML(specPath string) string {
-	quotedSpecPath := strconv.Quote(specPath)
+	quotedSpecPath := `"` + template.JSEscapeString(specPath) + `"`
 
 	return `<!doctype html>
 <html lang="en">
