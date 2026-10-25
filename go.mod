@@ -4,7 +4,7 @@ go 1.25.0
 
 require (
 	github.com/getkin/kin-openapi v0.151.0
-	github.com/labstack/echo/v5 v5.4.0
+	github.com/labstack/echo/v5 v5.4.1
 	gopkg.in/yaml.v3 v3.0.1
 )
 
